@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetNinja.Mediator.Tests", "NetNinja.Mediator.Tests\NetNinja.Mediator.Tests.csproj", "{F870B26E-BA43-4394-B0D6-6090A4A0B561}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetNinja.Mediator", "..\..\src\NetNinja.Mediator\NetNinja.Mediator.csproj", "{4AD7023A-B53A-4E3E-A6CD-ED53ED317E81}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{F870B26E-BA43-4394-B0D6-6090A4A0B561}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F870B26E-BA43-4394-B0D6-6090A4A0B561}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F870B26E-BA43-4394-B0D6-6090A4A0B561}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F870B26E-BA43-4394-B0D6-6090A4A0B561}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4AD7023A-B53A-4E3E-A6CD-ED53ED317E81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4AD7023A-B53A-4E3E-A6CD-ED53ED317E81}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4AD7023A-B53A-4E3E-A6CD-ED53ED317E81}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4AD7023A-B53A-4E3E-A6CD-ED53ED317E81}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

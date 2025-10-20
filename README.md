@@ -1,5 +1,8 @@
 # NetNinja.Mediator
 
+All tests passed
+- ![alt text](./ReadmeImages/all-tests-passed.png)
+
 [![NuGet](https://img.shields.io/nuget/v/NetNinja.Mediator.svg)](https://www.nuget.org/packages/NetNinja.Mediator/)
 [![Downloads](https://img.shields.io/nuget/dt/NetNinja.Mediator.svg)](https://www.nuget.org/packages/NetNinja.Mediator/)
 

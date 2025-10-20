@@ -5,12 +5,17 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>NetNinja.Mediator</PackageId>
-        <Version>1.0.1</Version>
+        <Version>1.0.3</Version>
         <Authors>Christian García Martín</Authors>
         <Description>Tool to implement a basic mediator pattern in you .NET application</Description>
         <RepositoryUrl>https://github.com/christian-cell/NetNinja.Mediator/tree/master</RepositoryUrl>
         <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+        <PackageIcon>image.png</PackageIcon>
         <IncludeBuildOutput>true</IncludeBuildOutput>
+        <Copyright>MIT License</Copyright>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+        <PackageLicenseFile>LICENSE</PackageLicenseFile>
+        <IncludeSymbols>False</IncludeSymbols>
     </PropertyGroup>
 
     <ItemGroup>
