@@ -22,7 +22,7 @@
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
         </None>
-        <None Include="..\ReadmeImages\image.png">
+        <None Include="..\..\ReadmeImages\image.png">
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
         </None>
