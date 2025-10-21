@@ -1,5 +1,7 @@
 ﻿using NetNinja.Mediator.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.AspNetCore.Http;
+using Moq;
 
 namespace NetNinja.Mediator.Tests
 {
@@ -25,6 +27,12 @@ namespace NetNinja.Mediator.Tests
             var services = new ServiceCollection();
             var assemblies = handlerTypes.Select(t => t.Assembly).Distinct().ToArray();
             services.AddNetNinjaMediator(assemblies);
+
+            // Mock IHttpContextAccessor para que HttpContext sea null
+            var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+            httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext)null);
+            services.AddSingleton<IHttpContextAccessor>(httpContextAccessorMock.Object);
+
             return services.BuildServiceProvider();
         }
 
@@ -50,6 +58,12 @@ namespace NetNinja.Mediator.Tests
         {
             var services = new ServiceCollection();
             services.AddNetNinjaMediator();
+
+            // Mock IHttpContextAccessor
+            var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+            httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext)null);
+            services.AddSingleton<IHttpContextAccessor>(httpContextAccessorMock.Object);
+
             var provider = services.BuildServiceProvider();
             var mediator = provider.GetService<IMediatorService>();
             Assert.ThrowsAsync<InvalidOperationException>(async () =>

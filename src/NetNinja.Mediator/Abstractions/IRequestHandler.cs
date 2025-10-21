@@ -1,7 +1,4 @@
-﻿using System.Threading;
-using System.Threading.Tasks;
-
-namespace NetNinja.Mediator.Abstractions
+﻿namespace NetNinja.Mediator.Abstractions
 {
     public interface IRequestHandler<TRequest, TResponse> where TRequest : IRequest<TResponse>
     {
