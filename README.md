@@ -170,9 +170,9 @@ using System.Threading.Tasks;
 [Route("api/[controller]")]
 public class UsersController : ControllerBase
 {
-    private readonly IMediatorService _mediator;
+    private readonly IMediator _mediator;
     
-    public UsersController(IMediatorService mediator)
+    public UsersController(IMediator mediator)
     {
         _mediator = mediator;
     }
@@ -203,22 +203,22 @@ The NetNinja.Mediator package implements a simple Mediator pattern with the foll
 
 ### Main Interfaces
 
-- **`IMediatorService`**: Main interface for the mediator service with async `Send<TResponse>` method
+- **`IMediator`**: Main interface for the mediator service with async `Send<TResponse>` method
 - **`IRequest<TResponse>`**: Base interface for all requests
 - **`IRequestHandler<TRequest, TResponse>`**: Interface for async handlers that process requests with CancellationToken support
 
 ### Workflow
 
 1. Create an instance of `IRequest<TResponse>`
-2. Send it to `IMediatorService` using the async `Send<TResponse>()` method with optional `CancellationToken`
+2. Send it to `IMediator` using the async `Send<TResponse>()` method with optional `CancellationToken`
 3. The mediator automatically finds the appropriate `IRequestHandler`
 4. The handler processes the request asynchronously and returns the response
 
 ```
-Controller → IMediatorService → IRequestHandler → Repository/Service → Response
+Controller → IMediator → IRequestHandler → Repository/Service → Response
 ```
 
-## � Async/Await Support & CancellationToken
+## 🔄 Async/Await Support & CancellationToken
 
 NetNinja.Mediator fully supports asynchronous operations and provides built-in cancellation support:
 
@@ -286,9 +286,9 @@ using System.Threading.Tasks;
 
 public class UserService
 {
-    private readonly IMediatorService _mediator;
+    private readonly IMediator _mediator;
     
-    public UserService(IMediatorService mediator)
+    public UserService(IMediator mediator)
     {
         _mediator = mediator;
     }

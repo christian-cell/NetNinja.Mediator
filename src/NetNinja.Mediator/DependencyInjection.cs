@@ -1,8 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using NetNinja.Mediator.Abstractions;
-using NetNinja.Mediator.Services;
 using System.Reflection;
-using System.Linq;
 
 namespace NetNinja.Mediator
 {
@@ -10,7 +8,7 @@ namespace NetNinja.Mediator
     {
         public static IServiceCollection AddNetNinjaMediator(this IServiceCollection services, params Assembly[] assemblies)
         {
-            services.AddTransient<IMediatorService, MediatorService>();
+            services.AddTransient<IMediator,Services.Mediator>();
 
             var handlerInterface = typeof(IRequestHandler<,>);
             var handlerTypes = assemblies

@@ -4,12 +4,12 @@ using NetNinja.Mediator.Abstractions;
 
 namespace NetNinja.Mediator.Services
 {
-    public class MediatorService : IMediatorService
+    public class Mediator : IMediator
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly IHttpContextAccessor _httpContextAccessor;
 
-        public MediatorService(IServiceProvider serviceProvider, IHttpContextAccessor httpContextAccessor)
+        public Mediator(IServiceProvider serviceProvider, IHttpContextAccessor httpContextAccessor)
         {
             _serviceProvider = serviceProvider;
             _httpContextAccessor = httpContextAccessor;

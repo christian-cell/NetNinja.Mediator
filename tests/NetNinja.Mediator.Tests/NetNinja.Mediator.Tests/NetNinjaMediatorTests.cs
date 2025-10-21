@@ -20,7 +20,7 @@ namespace NetNinja.Mediator.Tests
     }
 
     [TestFixture]
-    public class MediatorServiceTests
+    public class MediatorTests
     {
         private IServiceProvider BuildProvider(params Type[] handlerTypes)
         {
@@ -40,7 +40,7 @@ namespace NetNinja.Mediator.Tests
         public void Should_Resolve_MediatorService()
         {
             var provider = BuildProvider(typeof(DummyHandler));
-            var mediator = provider.GetService<IMediatorService>();
+            var mediator = provider.GetService<IMediator>();
             Assert.IsNotNull(mediator);
         }
 
@@ -48,7 +48,7 @@ namespace NetNinja.Mediator.Tests
         public async Task Should_Invoke_Handler_And_Return_Response()
         {
             var provider = BuildProvider(typeof(DummyHandler));
-            var mediator = provider.GetService<IMediatorService>();
+            var mediator = provider.GetService<IMediator>();
             var response = await mediator!.Send(new DummyRequest(), CancellationToken.None);
             Assert.That(response, Is.EqualTo("Hello Mediator"));
         }
@@ -65,7 +65,7 @@ namespace NetNinja.Mediator.Tests
             services.AddSingleton<IHttpContextAccessor>(httpContextAccessorMock.Object);
 
             var provider = services.BuildServiceProvider();
-            var mediator = provider.GetService<IMediatorService>();
+            var mediator = provider.GetService<IMediator>();
             Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await mediator!.Send(new DummyRequest(), CancellationToken.None));
         }
@@ -74,7 +74,7 @@ namespace NetNinja.Mediator.Tests
         public void Should_Throw_When_Handler_Returns_Null()
         {
             var provider = BuildProvider(typeof(NullResponseHandler));
-            var mediator = provider.GetService<IMediatorService>();
+            var mediator = provider.GetService<IMediator>();
             Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await mediator!.Send(new NullResponseRequest(), CancellationToken.None));
         }
@@ -83,7 +83,7 @@ namespace NetNinja.Mediator.Tests
         public void Should_Propagate_Exception_From_Handler()
         {
             var provider = BuildProvider(typeof(ExceptionHandler));
-            var mediator = provider.GetService<IMediatorService>();
+            var mediator = provider.GetService<IMediator>();
             Assert.ThrowsAsync<ApplicationException>(async () =>
                 await mediator!.Send(new ExceptionRequest(), CancellationToken.None));
         }
@@ -92,7 +92,7 @@ namespace NetNinja.Mediator.Tests
         public void Should_Throw_When_Handle_Method_Not_Found()
         {
             var provider = BuildProvider(typeof(NoHandleHandler));
-            var mediator = provider.GetService<IMediatorService>();
+            var mediator = provider.GetService<IMediator>();
             Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await mediator!.Send(new NoHandleRequest(), CancellationToken.None));
         }
