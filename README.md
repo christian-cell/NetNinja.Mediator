@@ -218,7 +218,7 @@ The NetNinja.Mediator package implements a simple Mediator pattern with the foll
 Controller → IMediator → IRequestHandler → Repository/Service → Response
 ```
 
-## 🔄 Async/Await Support & CancellationToken
+## 🔄� Async/Await Support & CancellationToken
 
 NetNinja.Mediator fully supports asynchronous operations and provides built-in cancellation support:
 
