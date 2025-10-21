@@ -16,6 +16,8 @@ A simple and efficient tool to implement the Mediator pattern in .NET 8 applicat
 - ✅ Automatic handler registration from assemblies
 - ✅ Clean and easy-to-use interface
 - ✅ Compatible with Microsoft.Extensions.DependencyInjection
+- ✅ Async/await support with Task-based handlers
+- ✅ CancellationToken support for better cancellation handling
 
 ## 📦 Installation
 
@@ -107,6 +109,8 @@ public class CreateUserCommand : IRequest<int>
 
 ```csharp
 using NetNinja.Mediator.Abstractions;
+using System.Threading;
+using System.Threading.Tasks;
 
 // Query Handler
 public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDto>
@@ -118,9 +122,9 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDto
         _userRepository = userRepository;
     }
     
-    public UserDto Handle(GetUserByIdQuery request)
+    public async Task<UserDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
     {
-        var user = _userRepository.GetById(request.UserId);
+        var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
         
         return new UserDto
         {
@@ -141,7 +145,7 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, int>
         _userRepository = userRepository;
     }
     
-    public int Handle(CreateUserCommand request)
+    public async Task<int> Handle(CreateUserCommand request, CancellationToken cancellationToken)
     {
         var user = new User
         {
@@ -149,7 +153,7 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, int>
             Email = request.Email
         };
         
-        return _userRepository.Create(user);
+        return await _userRepository.CreateAsync(user, cancellationToken);
     }
 }
 ```
@@ -159,6 +163,8 @@ public class CreateUserCommandHandler : IRequestHandler<CreateUserCommand, int>
 ```csharp
 using Microsoft.AspNetCore.Mvc;
 using NetNinja.Mediator.Abstractions;
+using System.Threading;
+using System.Threading.Tasks;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -172,19 +178,19 @@ public class UsersController : ControllerBase
     }
     
     [HttpGet("{id}")]
-    public ActionResult<UserDto> GetUser(int id)
+    public async Task<ActionResult<UserDto>> GetUser(int id, CancellationToken cancellationToken)
     {
         var query = new GetUserByIdQuery(id);
-        var result = _mediator.Send(query);
+        var result = await _mediator.Send(query, cancellationToken);
         
         return Ok(result);
     }
     
     [HttpPost]
-    public ActionResult<int> CreateUser([FromBody] CreateUserRequest request)
+    public async Task<ActionResult<int>> CreateUser([FromBody] CreateUserRequest request, CancellationToken cancellationToken)
     {
         var command = new CreateUserCommand(request.Name, request.Email);
-        var userId = _mediator.Send(command);
+        var userId = await _mediator.Send(command, cancellationToken);
         
         return CreatedAtAction(nameof(GetUser), new { id = userId }, userId);
     }
@@ -197,19 +203,66 @@ The NetNinja.Mediator package implements a simple Mediator pattern with the foll
 
 ### Main Interfaces
 
-- **`IMediatorService`**: Main interface for the mediator service
+- **`IMediatorService`**: Main interface for the mediator service with async `Send<TResponse>` method
 - **`IRequest<TResponse>`**: Base interface for all requests
-- **`IRequestHandler<TRequest, TResponse>`**: Interface for handlers that process requests
+- **`IRequestHandler<TRequest, TResponse>`**: Interface for async handlers that process requests with CancellationToken support
 
 ### Workflow
 
 1. Create an instance of `IRequest<TResponse>`
-2. Send it to `IMediatorService` using the `Send<TResponse>()` method
+2. Send it to `IMediatorService` using the async `Send<TResponse>()` method with optional `CancellationToken`
 3. The mediator automatically finds the appropriate `IRequestHandler`
-4. The handler processes the request and returns the response
+4. The handler processes the request asynchronously and returns the response
 
 ```
 Controller → IMediatorService → IRequestHandler → Repository/Service → Response
+```
+
+## � Async/Await Support & CancellationToken
+
+NetNinja.Mediator fully supports asynchronous operations and provides built-in cancellation support:
+
+### Key Benefits
+
+- **Performance**: Non-blocking I/O operations for better scalability
+- **Cancellation**: Proper cancellation support throughout the pipeline
+- **Exception Handling**: Proper async exception propagation
+- **Resource Management**: Better resource utilization in async contexts
+
+### CancellationToken Best Practices
+
+```csharp
+// In Controllers - ASP.NET Core automatically provides CancellationToken
+[HttpGet("{id}")]
+public async Task<ActionResult<UserDto>> GetUser(int id, CancellationToken cancellationToken)
+{
+    var query = new GetUserByIdQuery(id);
+    var result = await _mediator.Send(query, cancellationToken);
+    return Ok(result);
+}
+
+// In Services - Pass through or provide default
+public async Task<UserDto> GetUserAsync(int id, CancellationToken cancellationToken = default)
+{
+    var query = new GetUserByIdQuery(id);
+    return await _mediator.Send(query, cancellationToken);
+}
+
+// In Handlers - Always pass CancellationToken to async operations
+public async Task<UserDto> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
+{
+    // Pass cancellationToken to all async operations
+    var user = await _userRepository.GetByIdAsync(request.UserId, cancellationToken);
+    var permissions = await _permissionService.GetUserPermissionsAsync(user.Id, cancellationToken);
+    
+    return new UserDto
+    {
+        Id = user.Id,
+        Name = user.Name,
+        Email = user.Email,
+        Permissions = permissions
+    };
+}
 ```
 
 ## 🔧 Advanced Configuration
@@ -228,6 +281,9 @@ builder.Services.AddNetNinjaMediator(
 ### Use in Services (not just Controllers)
 
 ```csharp
+using System.Threading;
+using System.Threading.Tasks;
+
 public class UserService
 {
     private readonly IMediatorService _mediator;
@@ -237,10 +293,16 @@ public class UserService
         _mediator = mediator;
     }
     
-    public async Task<UserDto> GetUserAsync(int id)
+    public async Task<UserDto> GetUserAsync(int id, CancellationToken cancellationToken = default)
     {
         var query = new GetUserByIdQuery(id);
-        return _mediator.Send(query);
+        return await _mediator.Send(query, cancellationToken);
+    }
+    
+    public async Task<int> CreateUserAsync(string name, string email, CancellationToken cancellationToken = default)
+    {
+        var command = new CreateUserCommand(name, email);
+        return await _mediator.Send(command, cancellationToken);
     }
 }
 ```
