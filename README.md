@@ -58,6 +58,8 @@ namespace Your.Api
                 typeof(UserQueryHandler).Assembly, 
                 typeof(UserCommandHandler).Assembly
                 );
+            
+            
 
             app.UseHttpsRedirection();
             app.UseAuthentication();
@@ -72,6 +74,24 @@ namespace Your.Api
 }
 ```
 
+Versions >= 1.0.11 you can enable behaviors
+
+```csharp
+/* versions >= 1.0.11 you can enable behaviors */
+builder.Services.AddNetNinjaMediator(
+    autoRegisterValidators: true,
+    autoRegisterValidationBehavior: false,
+    autoRegisterPipelineBehaviors: false,
+    autoRegisterHandlers: true,
+    typeof(CreateUserCommandHandler).Assembly
+);
+```
+
+But is always recommended register by your self, behaviors will be executed in the orders you register
+```csharp
+/* for example register your validator behavior */
+services.AddTransient(typeof(NetNinja.Mediator.Abstractions.IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+```
 
 ## 📋 Basic Usage
 
