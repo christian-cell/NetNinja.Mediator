@@ -1,20 +1,23 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using NetNinja.Mediator.Abstractions;
-using System;
-using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Collections.Generic;
+using Microsoft.AspNetCore.Http;
 
 namespace NetNinja.Mediator
 {
     public static class DependencyInjection
     {
-        public static IServiceCollection AddNetNinjaMediator(this IServiceCollection services, params Assembly[] assemblies)
+        public static IServiceCollection AddNetNinjaMediator(
+            this IServiceCollection services, 
+            params Assembly[] assemblies
+            )
             => AddNetNinjaMediator(services, registerValidators: false, registerDefaultValidationBehavior: false, assemblies: assemblies);
 
         public static IServiceCollection AddNetNinjaMediator(this IServiceCollection services, bool registerValidators, bool registerDefaultValidationBehavior, params Assembly[] assemblies)
         {
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            
             services.AddTransient<IMediator, Services.Mediator>();
 
             var handlerInterface = typeof(IRequestHandler<,>);
