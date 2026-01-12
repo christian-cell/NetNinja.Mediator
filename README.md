@@ -77,7 +77,7 @@ namespace Your.Api
 Versions >= 1.0.11 you can enable behaviors
 
 ```csharp
-/* versions >= 1.0.11 you can enable behaviors */
+/* versions >= 1.0.12 you can enable behaviors */
 builder.Services.AddNetNinjaMediator(
     autoRegisterValidators: true,
     autoRegisterValidationBehavior: false,

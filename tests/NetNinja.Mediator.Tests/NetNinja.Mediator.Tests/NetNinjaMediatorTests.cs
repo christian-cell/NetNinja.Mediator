@@ -26,9 +26,8 @@ namespace NetNinja.Mediator.Tests
         {
             var services = new ServiceCollection();
             var assemblies = handlerTypes.Select(t => t.Assembly).Distinct().ToArray();
-            services.AddNetNinjaMediator(assemblies);
+            services.AddNetNinjaMediator(true,true,true,true,assemblies);
 
-            // Mock IHttpContextAccessor para que HttpContext sea null
             var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
             httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext)null);
             services.AddSingleton<IHttpContextAccessor>(httpContextAccessorMock.Object);
