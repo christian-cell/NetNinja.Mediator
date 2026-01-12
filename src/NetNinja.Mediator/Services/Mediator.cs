@@ -1,5 +1,6 @@
 ﻿using System.Reflection;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using NetNinja.Mediator.Abstractions;
 
 namespace NetNinja.Mediator.Services
@@ -28,11 +29,37 @@ namespace NetNinja.Mediator.Services
             
             try
             {
-                var task = (Task<TResponse>)method.Invoke(handler, new object[] { request, token })!;
-                if (task == null) throw new InvalidOperationException("Handler returned null");
-                var result = await task;
-                if (result == null) throw new InvalidOperationException("Handler returned null");
-                return result;
+                Func<Task<TResponse>> pipeline = () =>
+                {
+                    var task = (Task<TResponse>)method.Invoke(handler, new object[] { request, token })!;
+                    if (task == null) throw new InvalidOperationException("Handler returned null");
+
+                    return task;
+                };
+                
+                var behaviorInterface = typeof(IPipelineBehavior<,>).MakeGenericType(request.GetType(), typeof(TResponse));
+                var behaviors = _serviceProvider.GetServices(behaviorInterface).ToList();
+
+                foreach (var behavior in behaviors.AsEnumerable().Reverse())
+                {
+                    var next = pipeline;
+                    var behaviorInstance = behavior;
+
+                    var handleMethod = behaviorInterface.GetMethod("Handle");
+                    if (handleMethod == null) throw new InvalidOperationException("Behavior Handle method not found on interface");
+
+                    pipeline = () =>
+                    {
+                        var resultTask = (Task<TResponse>)handleMethod.Invoke(behaviorInstance, new object[] { request, token, next })!;
+                        if (resultTask == null) throw new InvalidOperationException("Behavior returned null");
+                        return resultTask;
+                    };
+                }
+
+
+               var result = await pipeline();
+               if (result == null) throw new InvalidOperationException("Handler returned null");
+               return result;
             }
             catch (TargetInvocationException ex) when (ex.InnerException != null)
             {
