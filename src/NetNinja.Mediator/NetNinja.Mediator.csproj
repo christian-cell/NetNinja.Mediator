@@ -5,7 +5,7 @@
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
         <PackageId>NetNinja.Mediator</PackageId>
-        <Version>1.11.11</Version>
+        <Version>1.12.11</Version>
         <Authors>Christian García Martín</Authors>
         <Description>Tool to implement a basic mediator pattern in you .NET application</Description>
         <RepositoryUrl>https://github.com/christian-cell/NetNinja.Mediator/tree/master</RepositoryUrl>
