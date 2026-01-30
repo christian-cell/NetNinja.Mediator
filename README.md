@@ -74,7 +74,20 @@ namespace Your.Api
 }
 ```
 
-Versions >= 1.0.11 you can enable behaviors
+Versions >= 1.0.11 you can enable behaviors, also posibility to select the handlers registration type
+```csharp
+namespace NetNinja.Mediator.Enums;
+
+public enum RegistrationType
+{
+    Scoped = 0,
+    Transient = 1,
+    Singleton = 2,
+    None = 3
+}
+```
+
+by default None will register handlers as Transient
 
 ```csharp
 /* versions >= 1.0.12 you can enable behaviors */
@@ -83,7 +96,8 @@ builder.Services.AddNetNinjaMediator(
     autoRegisterValidationBehavior: false,
     autoRegisterPipelineBehaviors: false,
     autoRegisterHandlers: true,
-    typeof(CreateUserCommandHandler).Assembly
+    registrationType: RegistrationType.None,
+    typeof(CreateUserHandler).Assembly
 );
 ```
 
