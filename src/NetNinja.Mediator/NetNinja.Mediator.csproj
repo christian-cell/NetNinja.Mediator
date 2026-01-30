@@ -40,6 +40,10 @@
             <Pack>True</Pack>
             <PackagePath>\</PackagePath>
         </None>
+        <None Include="..\..\ReadmeImages\test-coverage.png">
+            <Pack>True</Pack>
+            <PackagePath>\</PackagePath>
+        </None>
         <None Include="..\..\README.md" Pack="true" PackagePath="\" />
     </ItemGroup>
 

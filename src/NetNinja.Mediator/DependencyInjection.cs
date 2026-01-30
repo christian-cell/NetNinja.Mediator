@@ -3,6 +3,7 @@ using NetNinja.Mediator.Abstractions;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Http;
+using NetNinja.Mediator.Enums;
 
 namespace NetNinja.Mediator
 {
@@ -13,8 +14,10 @@ namespace NetNinja.Mediator
             bool autoRegisterValidators = true,
             bool autoRegisterValidationBehavior = true,
             bool autoRegisterPipelineBehaviors = true,
-            bool autoRegisterHandlers = true,
-            params Assembly[] assemblies)
+            bool autoRegisterHandlers = false,
+            RegistrationType registrationType = RegistrationType.None,
+            params Assembly[] assemblies
+        )
         {
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddTransient<IMediator, Services.Mediator>();
@@ -38,7 +41,23 @@ namespace NetNinja.Mediator
                     .ToList();
 
                 foreach (var h in handlerTypes)
-                    services.AddTransient(h.Interface, h.Type);
+                {
+                    switch (registrationType)
+                    {
+                        case RegistrationType.Transient:
+                        case RegistrationType.None: 
+                            services.AddTransient(h.Interface, h.Type);
+                            break;
+                        case RegistrationType.Scoped:
+                            services.AddScoped(h.Interface, h.Type);
+                            break;
+                        case RegistrationType.Singleton:
+                            services.AddSingleton(h.Interface, h.Type);
+                            break;
+                        default:
+                            throw new ArgumentOutOfRangeException(nameof(registrationType), registrationType, null);
+                    }
+                }
             }
 
             if (autoRegisterPipelineBehaviors)
