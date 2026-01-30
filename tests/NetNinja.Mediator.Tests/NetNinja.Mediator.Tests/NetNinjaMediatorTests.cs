@@ -2,23 +2,13 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.AspNetCore.Http;
 using Moq;
+using NetNinja.Mediator.Enums;
+using NetNinja.Mediator.Tests.Fakes.Behaviors;
+using NetNinja.Mediator.Tests.Fakes.Handlers;
+using NetNinja.Mediator.Tests.Fakes.Requests;
 
 namespace NetNinja.Mediator.Tests
 {
-    public class DummyRequest : IRequest<string> { }
-    public class DummyHandler : IRequestHandler<DummyRequest, string>
-    {
-        public Task<string> Handle(DummyRequest request, CancellationToken cancellationToken)
-            => Task.FromResult("Hello Mediator");
-    }
-
-    public class NullResponseRequest : IRequest<string> { }
-    public class NullResponseHandler : IRequestHandler<NullResponseRequest, string>
-    {
-        public Task<string> Handle(NullResponseRequest request, CancellationToken cancellationToken)
-            => Task.FromResult<string>(null!);
-    }
-
     [TestFixture]
     public class MediatorTests
     {
@@ -26,11 +16,11 @@ namespace NetNinja.Mediator.Tests
         {
             var services = new ServiceCollection();
             var assemblies = handlerTypes.Select(t => t.Assembly).Distinct().ToArray();
-            services.AddNetNinjaMediator(true,true,true,true,assemblies);
+            services.AddNetNinjaMediator(true,true,true,true, RegistrationType.None,assemblies);
 
             var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
-            httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext)null);
-            services.AddSingleton<IHttpContextAccessor>(httpContextAccessorMock.Object);
+            httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext)null!);
+            services.AddSingleton(httpContextAccessorMock.Object);
 
             return services.BuildServiceProvider();
         }
@@ -49,7 +39,7 @@ namespace NetNinja.Mediator.Tests
             var provider = BuildProvider(typeof(DummyHandler));
             var mediator = provider.GetService<IMediator>();
             var response = await mediator!.Send(new DummyRequest(), CancellationToken.None);
-            Assert.That(response, Is.EqualTo("Hello Mediator"));
+            Assert.That(response, Is.EqualTo("A(B(C()))"));
         }
 
         [Test]
@@ -58,10 +48,9 @@ namespace NetNinja.Mediator.Tests
             var services = new ServiceCollection();
             services.AddNetNinjaMediator();
 
-            // Mock IHttpContextAccessor
             var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
-            httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext)null);
-            services.AddSingleton<IHttpContextAccessor>(httpContextAccessorMock.Object);
+            httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext)null!);
+            services.AddSingleton(httpContextAccessorMock.Object);
 
             var provider = services.BuildServiceProvider();
             var mediator = provider.GetService<IMediator>();
@@ -95,15 +84,219 @@ namespace NetNinja.Mediator.Tests
             Assert.ThrowsAsync<InvalidOperationException>(async () =>
                 await mediator!.Send(new NoHandleRequest(), CancellationToken.None));
         }
+        
+        [Test]
+        public async Task Should_Execute_Pipeline_Behavior()
+        {
+            PipelineBehavior1.Calls.Clear();
+
+            var services = new ServiceCollection();
+
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddTransient<IMediator, Mediator.Services.Mediator>();
+            services.AddTransient<IRequestHandler<DummyRequest, string>, DummyHandler>();
+            services.AddTransient<IPipelineBehavior<DummyRequest, string>, PipelineBehavior1>();
+
+            var provider = services.BuildServiceProvider();
+            var mediator = provider.GetRequiredService<IMediator>();
+
+            var response = await mediator.Send(new DummyRequest());
+
+            Assert.That(response, Is.EqualTo("Hello Mediator + behavior1"));
+            Assert.That(PipelineBehavior1.Calls, Is.EqualTo(new[] { "before", "after" }));
+        }
+        
+        [Test]
+        public void Should_Throw_When_PipelineBehavior_Returns_Null()
+        {
+            var services = new ServiceCollection();
+
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddTransient<IMediator, Mediator.Services.Mediator>();
+
+            services.AddTransient<IRequestHandler<DummyRequest, string>, DummyHandler>();
+
+            services.AddTransient<IPipelineBehavior<DummyRequest, string>, NullBehavior>();
+
+            var provider = services.BuildServiceProvider();
+            var mediator = provider.GetRequiredService<IMediator>();
+
+            Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await mediator.Send(new DummyRequest()));
+        }
+        
+        [Test]
+        public void Should_Unwrap_TargetInvocationException_From_Handler()
+        {
+            var services = new ServiceCollection();
+
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddTransient<IMediator, Mediator.Services.Mediator>();
+
+            services.AddTransient<IRequestHandler<ExceptionRequest, string>, ExceptionHandler>();
+
+            services.AddTransient<IPipelineBehavior<ExceptionRequest, string>, PassThroughBehavior>();
+
+            var provider = services.BuildServiceProvider();
+            var mediator = provider.GetRequiredService<IMediator>();
+
+            var ex = Assert.ThrowsAsync<ApplicationException>(async () =>
+                await mediator.Send(new ExceptionRequest()));
+
+            Assert.That(ex!.Message, Is.EqualTo("Handler error"));
+        }
+        
+        [Test]
+        public async Task Should_Use_HttpContext_RequestAborted_Token()
+        {
+            var services = new ServiceCollection();
+
+            var ctsHttp = new CancellationTokenSource();
+            var ctsParam = new CancellationTokenSource();
+
+            var context = new DefaultHttpContext();
+            context.RequestAborted = ctsHttp.Token;
+
+            var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+            httpContextAccessorMock.Setup(x => x.HttpContext).Returns(context);
+
+            services.AddSingleton(httpContextAccessorMock.Object);
+            services.AddTransient<IMediator, Mediator.Services.Mediator>();
+
+            services.AddTransient<IRequestHandler<DummyRequest, string>, CaptureTokenHandler>();
+
+            var provider = services.BuildServiceProvider();
+            var mediator = provider.GetRequiredService<IMediator>();
+
+            await mediator.Send(new DummyRequest(), ctsParam.Token);
+
+            Assert.That(CaptureTokenHandler.CapturedToken, Is.EqualTo(ctsHttp.Token));
+            Assert.That(CaptureTokenHandler.CapturedToken, Is.Not.EqualTo(ctsParam.Token));
+        }
+        
+        [Test]
+        public async Task Should_Use_Parameter_CancellationToken_When_HttpContext_Is_Null()
+        {
+            var services = new ServiceCollection();
+
+            var ctsParam = new CancellationTokenSource();
+
+            var httpContextAccessorMock = new Mock<IHttpContextAccessor>();
+            httpContextAccessorMock.Setup(x => x.HttpContext).Returns((HttpContext)null!);
+
+            services.AddSingleton(httpContextAccessorMock.Object);
+            services.AddTransient<IMediator, Mediator.Services.Mediator>();
+
+            services.AddTransient<IRequestHandler<DummyRequest, string>, CaptureTokenHandler2>();
+
+            var provider = services.BuildServiceProvider();
+            var mediator = provider.GetRequiredService<IMediator>();
+
+            await mediator.Send(new DummyRequest(), ctsParam.Token);
+
+            Assert.That(CaptureTokenHandler2.CapturedToken, Is.EqualTo(ctsParam.Token));
+        }
+        
+        [Test]
+        public async Task Should_Execute_Multiple_PipelineBehaviors_In_Registration_Order()
+        {
+            var services = new ServiceCollection();
+
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddTransient<IMediator, Mediator.Services.Mediator>();
+
+            services.AddTransient<IRequestHandler<DummyRequest, string>, BaseHandler>();
+
+            services.AddTransient<IPipelineBehavior<DummyRequest, string>, BehaviorA>();
+            services.AddTransient<IPipelineBehavior<DummyRequest, string>, BehaviorB>();
+            services.AddTransient<IPipelineBehavior<DummyRequest, string>, BehaviorC>();
+
+            var provider = services.BuildServiceProvider();
+            var mediator = provider.GetRequiredService<IMediator>();
+
+            var result = await mediator.Send(new DummyRequest());
+
+            Assert.That(result, Is.EqualTo("A(B(C(H)))"));
+        }
+        
+        [Test]
+        public async Task Should_Execute_Handler_Directly_When_No_PipelineBehaviors()
+        {
+            var services = new ServiceCollection();
+
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddTransient<IMediator, Mediator.Services.Mediator>();
+
+            services.AddTransient<IRequestHandler<DummyRequest, string>, DirectHandler>();
+
+            var provider = services.BuildServiceProvider();
+            var mediator = provider.GetRequiredService<IMediator>();
+
+            var result = await mediator.Send(new DummyRequest());
+
+            Assert.That(result, Is.EqualTo("DIRECT"));
+        }
+        
+        [Test]
+        public void Should_Throw_When_Handler_Returns_Null_Two()
+        {
+            var services = new ServiceCollection();
+
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddTransient<IMediator, Mediator.Services.Mediator>();
+
+            services.AddTransient<IRequestHandler<DummyRequest, string>, NullReturningHandler>();
+
+            var provider = services.BuildServiceProvider();
+            var mediator = provider.GetRequiredService<IMediator>();
+
+            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await mediator.Send(new DummyRequest()));
+
+            Assert.That(ex!.Message, Is.EqualTo("Handler returned null"));
+        }
+        
+        [Test]
+        public void Should_Throw_When_Handler_Not_Found()
+        {
+            var services = new ServiceCollection();
+
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
+            services.AddTransient<IMediator, Mediator.Services.Mediator>();
+
+            var provider = services.BuildServiceProvider();
+            var mediator = provider.GetRequiredService<IMediator>();
+
+            var ex = Assert.ThrowsAsync<InvalidOperationException>(async () =>
+                await mediator.Send(new DummyRequest()));
+
+            Assert.That(ex!.Message, Is.EqualTo("Handler not found"));
+        }
+        
+        [Test]
+        public void Should_Register_Mediator_And_Accessor_Without_Assemblies()
+        {
+            var services = new ServiceCollection();
+
+            services.AddNetNinjaMediator(
+                autoRegisterValidators: false,
+                autoRegisterValidationBehavior: false,
+                autoRegisterPipelineBehaviors: false,
+                autoRegisterHandlers: false
+            );
+
+            var provider = services.BuildServiceProvider();
+
+            Assert.That(provider.GetService<IMediator>(), Is.Not.Null);
+            Assert.That(provider.GetService<IHttpContextAccessor>(), Is.Not.Null);
+
+            Assert.That(services.Any(s => s.ServiceType.IsGenericType &&
+                                          s.ServiceType.GetGenericTypeDefinition() == typeof(IPipelineBehavior<,>)),
+                Is.False);
+
+            Assert.That(services.Any(s => s.ServiceType.IsGenericType &&
+                                          s.ServiceType.GetGenericTypeDefinition() == typeof(IRequestHandler<,>)),
+                Is.False);
+        }
     }
-    
-    public class ExceptionRequest : IRequest<string> { }
-    public class ExceptionHandler : IRequestHandler<ExceptionRequest, string>
-    {
-        public Task<string> Handle(ExceptionRequest request, CancellationToken cancellationToken)
-            => throw new ApplicationException("Handler error");
-    }
-    
-    public class NoHandleRequest : IRequest<string> { }
-    public class NoHandleHandler { }
 }
